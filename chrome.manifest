@@ -1,0 +1,5 @@
+content	hiberlink				chrome/content/hiberlink/
+locale	hiberlink	en-US		chrome/locale/en-US/hiberlink/
+skin	hiberlink	default		chrome/skin/default/hiberlink/
+
+overlay	chrome://zotero/content/zoteroPane.xul	chrome://hiberlink/content/overlay.xul

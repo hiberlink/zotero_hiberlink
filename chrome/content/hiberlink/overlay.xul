@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://hiberlink/skin/overlay.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://hiberlink/locale/hiberlink.dtd">
+
+<overlay id="hiberlinkzotero-overlay"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+    <!-- Include the main extension logic -->
+    <script src="chrome://zotero/content/include.js"/>
+    <script src="chrome://hiberlink/content/hiberlink.js" type="application/javascript;version=1.8"/>
+
+	<stringbundleset id="stringbundleset">
+		<stringbundle id="hiberlink-zotero-strings"
+			src="chrome://hiberlink/locale/hiberlink.properties"/>
+	</stringbundleset>
+	
+	<menupopup id="zotero-tb-actions-popup">
+		<!-- Make sure the menu separator for utilities is visible -->
+		<menuseparator id="zotero-tb-actions-plugins-separator" hidden="false"/>
+		<menuitem insertbefore="zotero-tb-actions-separator" label="Hiberlink report"
+			oncommand="Zotero.Hiberlink.getReport()"/>
+	</menupopup>
+
+</overlay>
