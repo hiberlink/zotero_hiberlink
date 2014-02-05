@@ -6,42 +6,20 @@ function buildContent() {
     table.setAttribute("id", "hor-minimalist-a");
     var thead = document.createElement("thead");
     var theadrow = document.createElement("tr");
-    var titleTitle = document.createElement("th");
-    titleTitle.appendChild(document.createTextNode("Title"));
-    theadrow.appendChild(titleTitle);
-    var urlTitle = document.createElement("th");
-    urlTitle.appendChild(document.createTextNode("URL"));
-    theadrow.appendChild(urlTitle);
-    var archiveTitle = document.createElement("th");
-    archiveTitle.appendChild(document.createTextNode("Archive URL"));
-    theadrow.appendChild(archiveTitle);
-    var timeTitle = document.createElement("th");
-    timeTitle.appendChild(document.createTextNode("Timestamp"));
-    theadrow.appendChild(timeTitle);
+    theadrow.appendChild(createHeader("Title"));
+    theadrow.appendChild(createHeader("URL"));
+    theadrow.appendChild(createHeader("Archive URL"));
+    theadrow.appendChild(createHeader("Timestamp"));
     thead.appendChild(theadrow);
     table.appendChild(thead);
     var tbody = document.createElement("tbody");
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
         var tr = document.createElement("tr");
-        var titleTd = document.createElement("td");
-        titleTd.appendChild(document.createTextNode(result['title']));
-        tr.appendChild(titleTd);
-        var urlTd = document.createElement("td");
-        var urlLink = document.createElement("a");
-        urlLink.setAttribute("href", result['url']);
-        urlLink.appendChild(document.createTextNode(result['url']));
-        urlTd.appendChild(urlLink);
-        tr.appendChild(urlTd);
-        var archiveTd = document.createElement("td");
-        var archiveLink = document.createElement("a");
-        archiveLink.setAttribute("href", result['archiveurl']);
-        archiveLink.appendChild(document.createTextNode(result['archiveurl']));
-        archiveTd.appendChild(archiveLink);
-        tr.appendChild(archiveTd);
-        var timeTd = document.createElement("td");
-        timeTd.appendChild(document.createTextNode(result['timestamp']));
-        tr.appendChild(timeTd);
+        tr.appendChild(createCell(result['title']));
+        tr.appendChild(createCell(result['url'], result['url']));
+        tr.appendChild(createCell(result['archiveurl'], result['archiveurl']));
+        tr.appendChild(createCell(result['timestamp']));
         tbody.appendChild(tr);
     }
     table.appendChild(tbody);
@@ -51,6 +29,25 @@ function buildContent() {
     jsTextNode.textContent = params;
     reportElement.appendChild(jsTextNode);
     Zotero.debug("Table: " + reportElement.innerHTML);
+}
+
+function createHeader(text) {
+    var header = document.createElement("th");
+    header.appendChild(document.createTextNode(text));
+    return header;
+}
+
+function createCell(text, linkUrl) {
+    var td = document.createElement("td");
+    if (linkUrl != null) {
+        var content = document.createElement("a");
+        content.setAttribute("href", linkUrl);
+        content.appendChild(document.createTextNode(text));
+        td.appendChild(content);
+    } else {
+        td.appendChild(document.createTextNode(text));
+    }
+    return td;
 }
 
 function parseParams(params) {
