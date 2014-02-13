@@ -20,5 +20,10 @@
 		<menuitem insertbefore="zotero-tb-actions-separator" label="Hiberlink report"
 			oncommand="Zotero.Hiberlink.getReport()"/>
 	</menupopup>
+    <menupopup id="zotero-itemmenu">
+        <menuseparator/>
+        <menuitem class="menuitem-iconic zotero-menuitem-refresh-archive"
+                  label="Refresh archive" oncommand="Zotero.Hiberlink.refreshArchive();"/>
+    </menupopup>
 
 </overlay>

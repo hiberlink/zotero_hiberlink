@@ -94,6 +94,11 @@ Zotero.Hiberlink = {
                 }
             }
         }
+    },
+    refreshArchive: function() {
+        ZoteroPane_Local.duplicateSelectedItem();
+        var item = ZoteroPane_Local.getSelectedItems()[0];
+        item.setField('title', item.getField('title') + ' (' + new Date() + ')');
     }
 };
 
