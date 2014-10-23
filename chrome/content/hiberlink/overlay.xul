@@ -17,8 +17,11 @@
 	<menupopup id="zotero-tb-actions-popup">
 		<!-- Make sure the menu separator for utilities is visible -->
 		<menuseparator id="zotero-tb-actions-plugins-separator" hidden="false"/>
-		<menuitem insertbefore="zotero-tb-actions-separator" label="Hiberlink report"
+		<menuitem id="zotero-tb-actions-hiberlinkreport" insertbefore="zotero-tb-actions-separator" label="Hiberlink Report"
 			oncommand="Zotero.Hiberlink.getReport()"/>
+        <menuitem id="zotero-tb-actions-hiberlinksettings" insertbefore="zotero-tb-actions-hiberlinkreport" label="Hiberlink Settings"
+                  oncommand="Zotero.Hiberlink.getSettings()"/>
+        <menuseparator id="zotero-tb-actions-hiberlink-separator" hidden="false" insertbefore="zotero-tb-actions-hiberlinksettings"/>
 	</menupopup>
     <menupopup id="zotero-itemmenu">
         <menuseparator/>

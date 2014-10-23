@@ -76,7 +76,8 @@ function saveReport() {
     var data = "<html><body>";
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        data += "<a href='" + result['url'] + "' data-versionurl='" + result['archiveurl'] + "' data-versiondate='" + result['timestamp'] + "'>" + result['url'] + "</a>";
+        data += "<a href='" + result['url'] + "' data-versionurl='" + result['archiveurl'] + "' data-versiondate='"
+            + result['timestamp'] + "'>" + result['url'] + "</a>";
     }
     data += "</body></html>";
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -93,7 +94,6 @@ function saveReport() {
         NetUtil.asyncCopy(istream, ostream, function(status) {
             if (!Components.isSuccessCode(status)) {
                 Zotero.debug("Could not write to file");
-                return;
             }
         });
     }
@@ -104,8 +104,20 @@ function getResults(params) {
     if (params.length > 0) {
         query += " WHERE";
         for (var j = 0; j < params.length; j++) {
-            query += " itemid=" + params[j] + " OR";
+            var param = params[j];
+            if (isInt(param)) {
+                query += " itemid=" + param + " OR";
+            }
         }
     }
-    return Zotero.Hiberlink.DB.query("SELECT url, title, archiveurl, timestamp FROM changes" + query.substring(0, query.length - 3));
+    return Zotero.Hiberlink.DB.query("SELECT url, title, archiveurl, timestamp FROM changes"
+        + query.substring(0, query.length - 3));
+}
+
+// Function to check that value is an integer. We're constructing our own SQL query from the
+// params passed to the page so we need to make sure that we're not allowing SQL injections.
+function isInt(value) {
+    return !isNaN(value) &&
+        parseInt(Number(value)) == value &&
+        !isNaN(parseInt(value, 10));
 }

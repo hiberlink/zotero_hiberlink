@@ -6,6 +6,19 @@ table {
     border: 1px;
 }
 
+form {
+    font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+    font-size: 12px;
+}
+
+form div label {
+    border-right: 2px;
+}
+
+div.settings {
+    border-bottom: 5px;
+}
+
 #hor-minimalist-a {
     font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
     font-size: 12px;

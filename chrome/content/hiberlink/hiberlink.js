@@ -1,12 +1,25 @@
 Zotero.Hiberlink = {
     DB: null,
+    archiveUrl: null,
+    intervalID: null,
+    count: null,
+    insertID: null,
+    item: null,
 
     init: function () {
         // Connect to (and create, if necessary) hiberlink.sqlite in the Zotero directory
         this.DB = new Zotero.DBConnection('hiberlink');
 
         if (!this.DB.tableExists('changes')) {
-            this.DB.query("CREATE TABLE changes (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, itemid INTEGER, version INTEGER NOT NULL, title TEXT, url TEXT, archiveurl TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
+            this.DB.query("CREATE TABLE changes (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, itemid INTEGER, " +
+                "version INTEGER NOT NULL, title TEXT, url TEXT, archiveurl TEXT, timestamp DATETIME DEFAULT NULL)");
+        }
+
+        if (!this.DB.tableExists('settings')) {
+            this.DB.query("CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, key TEXT NOT NULL, " +
+                "value TEXT NOT NULL)");
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceUrl", "http://archive.today/submit/"]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceEnabled", "true"]);
         }
 
         // Register the callback in Zotero as an item observer
@@ -19,6 +32,7 @@ Zotero.Hiberlink = {
     },
 
     getReport: function () {
+        // Display additional window to show report of archived links
         var col = ZoteroPane_Local.getSelectedItems();
         var params = "zotero://hiberlink/content/report.html?";
         for (var i = 0; i < col.length; i++) {
@@ -28,77 +42,118 @@ Zotero.Hiberlink = {
         ZoteroPane_Local.loadURI(params.substring(0, params.length - 1));
     },
 
+    getSettings: function () {
+        // Display additional window to show Hiberlink settings
+        ZoteroPane_Local.loadURI("zotero://hiberlink/content/settings.html");
+    },
+
     // Callback implementing the notify() method to pass to the Notifier
     notifierCallback: {
         notify: function (event, type, ids, extraData) {
+            Zotero.debug("Event: " + event);
             if (event == 'add' || event == 'modify') {
                 var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
                     .getService(Components.interfaces.nsIPromptService);
                 // Loop through array of items and grab titles
-//                alert("Ids: " + ids);
-                var item;
                 Zotero.debug("Ids size: " + ids.length);
                 if (ids.length > 1) {
                     for (var id in ids) {
-                        item = Zotero.Items.get(id);
-                        Zotero.debug("ID: " + item);
+                        Zotero.Hiberlink.item = Zotero.Items.get(id);
+                        Zotero.debug("ID: " + Zotero.Hiberlink.item);
                         // For deleted items, get title from passed data
-                        if (typeof item === 'object') {
-                            if (item.getField('url') != '') {
-                                alert("URL: " + item.getField('url'));
+                        if (typeof Zotero.Hiberlink.item === 'object') {
+                            if (Zotero.Hiberlink.item.getField('url') != '') {
+//                                alert("URL: " + Zotero.Hiberlink.item.getField('url'));
                             }
-                            Zotero.debug("*** Fields: " + item.getField('title'));
                         }
                     }
                 } else {
-                    item = Zotero.Items.get(ids)[0];
-                    Zotero.debug("IDsingle: " + item);
-                    if (typeof item === 'object') {
-                        var url = item.getField('url');
-                        var itemId = item.getField('id');
-                        var title = item.getField('title');
-                        var oldRecord = Zotero.Hiberlink.DB.query("SELECT url, version FROM changes WHERE itemid='" + itemId + "' ORDER BY version DESC LIMIT 1");
+                    Zotero.Hiberlink.item = Zotero.Items.get(ids)[0];
+                    if (typeof Zotero.Hiberlink.item === 'object') {
+                        var url = Zotero.Hiberlink.item.getField('url');
+                        var itemId = Zotero.Hiberlink.item.getField('id');
+                        var title = Zotero.Hiberlink.item.getField('title');
+                        var oldRecord = Zotero.Hiberlink.DB.query("SELECT url, version FROM changes WHERE itemid=? ORDER BY version DESC LIMIT 1", [itemId]);
                         var oldUrl = null;
                         var oldVersion = 0;
-                        Zotero.debug("Old record: " + oldRecord.length);
                         if (oldRecord) {
                             oldUrl = oldRecord[0]['url'];
                             oldVersion = oldRecord[0]['version'];
-                            Zotero.debug("Old version: " + oldVersion);
-                            Zotero.debug("Old url:" + oldUrl);
                         }
-                        if (url != '' && url != oldUrl) {
-//                            alert("URL: " + url);
-                            var xhr = new XMLHttpRequest();
-                            xhr.open('POST', 'http://archive.is/submit/', true);
-                            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-                            xhr.onload = function () {
-                                Zotero.debug("Upload response: " + this.responseText);
-                                Zotero.debug("Upload headers: " + this.getAllResponseHeaders());
-                                var archiveUrl = this.getResponseHeader('refresh').split('url=')[1];
-                                var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, version, title, url, archiveurl) VALUES ('" + itemId + "', '" + ++oldVersion + "', '" + title + "', '" + url + "', '" + archiveUrl + "')");
-                                var timeAccessed = Zotero.Hiberlink.DB.valueQuery("SELECT timestamp FROM changes WHERE id=?", insertId);
-                                item.setField('archive', archiveUrl);
-                                item.setField('accessDate', timeAccessed);
-                                item.save();
-//                                ps.alert(null, "", "DB id:" + insertId);
-                            };
-                            xhr.onerror = function () {
-                                ps.alert(null, "", "Could not archive url '" + url + "'");
-                                var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, title, url) VALUES ('" + itemId + "', '" + title + "', '" + url + "')");
-                            };
-                            xhr.send('url=' + url);
+                        var archiveServiceEnabled = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceEnabled"])[0]['value'];
+                        Zotero.debug("Archive service enabled: " + archiveServiceEnabled);
+                        if (url != '' && url != oldUrl && archiveServiceEnabled == 'true') {
+                            Zotero.Hiberlink.archiveURL(itemId, oldVersion, title, url);
                         }
-                        Zotero.debug("*** Fields: " + title);
                     }
+                }
+            } else if (event == 'delete') {
+                for (var i = 0, j = ids.length; i < j; i++) {
+                    var oldItem = extraData[ids[i]].old;
+                    // For deleted items, get id from passed data
+                    var deleteItemId = oldItem.primary.itemID;
+                    Zotero.debug("Deleting item with id " + deleteItemId);
+                    Zotero.Hiberlink.DB.query("DELETE FROM changes WHERE itemid=?", [deleteItemId]);
                 }
             }
         }
     },
-    refreshArchive: function() {
+    refreshArchive: function () {
+        // Create copy of reference and rearchive
         ZoteroPane_Local.duplicateSelectedItem();
         var item = ZoteroPane_Local.getSelectedItems()[0];
         item.setField('title', item.getField('title') + ' (' + new Date() + ')');
+    },
+    checkArchiveUrl: function () {
+        // Query archival service to check archive has been made
+        var xhr2 = new XMLHttpRequest();
+        xhr2.open('GET', Zotero.Hiberlink.archiveUrl, true);
+        xhr2.onload = function () {
+            var datetime = xhr2.getResponseHeader('Memento-Datetime');
+            Zotero.debug("Archive header: " + datetime);
+            Zotero.debug("Count: " + Zotero.Hiberlink.count);
+            if (Zotero.Hiberlink.count++ > 10 || datetime != null) {
+                Zotero.debug("Clearing interval with ID: " + Zotero.Hiberlink.intervalID);
+                clearInterval(Zotero.Hiberlink.intervalID);
+                if (datetime != null) {
+                    var utcDate = Zotero.Date.dateToSQL(new Date(datetime), true);
+                    var date = Zotero.Date.dateToSQL(new Date(datetime));
+                    Zotero.Hiberlink.item.setField('accessDate', utcDate);
+                    Zotero.Hiberlink.item.save();
+                    Zotero.Hiberlink.DB.query("UPDATE changes SET timestamp=? WHERE id=?", [date, Zotero.Hiberlink.insertID]);
+                }
+            }
+            if (Zotero.Hiberlink.count > 10) {
+                Zotero.debug("Archiving of URL timed out");
+            }
+        };
+        xhr2.send();
+    },
+    archiveURL: function (itemId, oldVersion, title, url) {
+        var xhr = new XMLHttpRequest();
+        var object = this;
+        var archiveServiceUrl = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceUrl"])[0]['value'];
+        Zotero.debug("Archiving to: " + archiveServiceUrl);
+        xhr.open('POST', archiveServiceUrl, true);
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        xhr.onload = function () {
+            if (xhr.getResponseHeader('refresh') != null) {
+                Zotero.Hiberlink.archiveUrl = xhr.getResponseHeader('refresh').split('url=')[1];
+                Zotero.debug("Querying archive url: " + Zotero.Hiberlink.archiveUrl);
+                Zotero.Hiberlink.insertID = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, version, title, url, archiveurl) VALUES (?, ?, ?, ?, ?)", [itemId, ++oldVersion, title, url, Zotero.Hiberlink.archiveUrl]);
+                Zotero.Hiberlink.count = 0;
+                Zotero.Hiberlink.intervalID = setInterval(Zotero.Hiberlink.checkArchiveUrl, 10000);
+                Zotero.Hiberlink.item.setField('archive', Zotero.Hiberlink.archiveUrl);
+                Zotero.Hiberlink.item.save();
+            } else {
+                Zotero.debug("Archival service did not accept the URL '" + url + "'");
+            }
+        };
+        xhr.onerror = function () {
+            ps.alert(null, "", Zotero.getString('hiberlink.fail', [url]));
+            var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, title, url) VALUES (?, ?, ?)", [itemId, title, url]);
+        };
+        xhr.send('url=' + url);
     }
 };
 

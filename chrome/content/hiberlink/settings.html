@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Hiberlink settings</title>
+    <script src="chrome://zotero/content/include.js"
+            type="text/javascript"></script>
+    <script src="chrome://hiberlink/content/settings.js"
+            type="text/javascript"></script>
+    <link rel="stylesheet" href="chrome://hiberlink/content/hiberlink.css"
+          type="text/css">
+</head>
+
+<body onload="Zotero.HiberlinkSettings.init(); sizeToContent();">
+<div id="hiberlink-settings" class="hiberlink-container">
+    <form>
+        <div id="service-checkbox-div" class="settings-div">
+            <label for="service-checkbox">Enable archive</label><input
+                type="checkbox" id="service-checkbox" name="service-checkbox">
+        </div>
+        <div id="service-url-div" class="settings-div">
+            <label for="service-url">Archive service URL</label><input
+                id="service-url" name="service-url" type="url" size="30">
+        </div>
+        <div id="hiberactive-checkbox-div" class="settings-div">
+            <label for="hiberactive-checkbox">Enable HiberActive</label><input
+                type="checkbox" id="hiberactive-checkbox"
+                name="hiberactive-checkbox">
+        </div>
+        <div id="hiberactive-url-div" class="settings-div">
+            <label for="hiberactive-url">HiberActive URL</label><input
+                id="hiberactive-url" name="hiberactive-url" type="url"
+                size="30">
+        </div>
+        <div id="topic-url-div" class="settings-div">
+            <label for="topic-url">HiberActive URL</label><input id="topic-url"
+                name="topic-url" type="url" size="30">
+        </div>
+    </form>
+</div>
+<div>
+    <input type="button" onclick="Zotero.HiberlinkSettings.saveSettings();"
+           value="Save"/>
+</div>
+</body>
+
+</html>
