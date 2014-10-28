@@ -20,6 +20,9 @@ Zotero.Hiberlink = {
                 "value TEXT NOT NULL)");
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceUrl", "http://archive.today/submit/"]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceEnabled", "true"]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveEnabled", "false"]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveUrl", ""]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveTopic", ""]);
         }
 
         // Register the callback in Zotero as an item observer
@@ -52,8 +55,6 @@ Zotero.Hiberlink = {
         notify: function (event, type, ids, extraData) {
             Zotero.debug("Event: " + event);
             if (event == 'add' || event == 'modify') {
-                var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-                    .getService(Components.interfaces.nsIPromptService);
                 // Loop through array of items and grab titles
                 Zotero.debug("Ids size: " + ids.length);
                 if (ids.length > 1) {
@@ -80,10 +81,17 @@ Zotero.Hiberlink = {
                             oldUrl = oldRecord[0]['url'];
                             oldVersion = oldRecord[0]['version'];
                         }
-                        var archiveServiceEnabled = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceEnabled"])[0]['value'];
-                        Zotero.debug("Archive service enabled: " + archiveServiceEnabled);
-                        if (url != '' && url != oldUrl && archiveServiceEnabled == 'true') {
-                            Zotero.Hiberlink.archiveURL(itemId, oldVersion, title, url);
+                        if (url != '' && url != oldUrl) {
+                            var archiveServiceEnabled = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceEnabled"])[0]['value'];
+                            if (archiveServiceEnabled == 'true') {
+                                Zotero.Hiberlink.archiveURL(itemId, oldVersion, title, url);
+                            }
+                            var hiberactiveEnabled = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["hiberactiveEnabled"])[0]['value'];
+                            if (hiberactiveEnabled == 'true') {
+                                var hiberactiveUrl = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["hiberactiveUrl"])[0]['value'];
+                                var hiberactiveTopic = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["hiberactiveTopic"])[0]['value'];
+                                Zotero.Hiberlink.hiberactiveURL(url, hiberactiveUrl, hiberactiveTopic);
+                            }
                         }
                     }
                 }
@@ -130,6 +138,8 @@ Zotero.Hiberlink = {
         xhr2.send();
     },
     archiveURL: function (itemId, oldVersion, title, url) {
+        var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+            .getService(Components.interfaces.nsIPromptService);
         var xhr = new XMLHttpRequest();
         var object = this;
         var archiveServiceUrl = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceUrl"])[0]['value'];
@@ -154,6 +164,36 @@ Zotero.Hiberlink = {
             var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, title, url) VALUES (?, ?, ?)", [itemId, title, url]);
         };
         xhr.send('url=' + url);
+    },
+    hiberactiveURL: function (url, hiberactiveUrl, hiberactiveTopic) {
+//        var doc = new DOMParser().parseFromString('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.orgrs/terms/"></urlset>',  "application/xml")
+//        var pi = doc.createProcessingInstruction('xml', 'version="1.0" encoding="UTF-8"');
+//        doc.insertBefore(pi, doc.firstChild);
+//        var rootElement = doc.documentElement;
+//        var urlElement = doc.createElement("url");
+//        var locElement = doc.createElement("loc");
+//        locElement.textContent = "http://test.com";
+//        var lastModifiedElement = doc.createElement("lastmod");
+//        lastModifiedElement.textContent = "2014-06-08T01:13:07Z";
+//        var mdElement = doc.createElement("rs:md");
+//        mdElement.setAttribute("change", "created");
+//        urlElement.appendChild(locElement);
+//        urlElement.appendChild(lastModifiedElement);
+//        urlElement.appendChild(mdElement);
+//        rootElement.appendChild(urlElement);
+//        Zotero.debug(new XMLSerializer().serializeToString(doc));
+        var jsonMessage = '[{"url": "' + url +'"}]';
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', hiberactiveUrl + '/publish', true);
+        xhr.setRequestHeader('Content-type', 'application/json');
+        xhr.setRequestHeader('Link', '<' + hiberactiveTopic + '>;rel=self, <' + hiberactiveUrl + '/publish>;rel=hub');
+        xhr.onerror = function () {
+            Zotero.debug("Failed to send Hiberactive message to " + hiberactiveUrl + " with topic " + hiberactiveTopic);
+        };
+        xhr.onload = function () {
+            Zotero.debug("Sent Hiberactive message to " + hiberactiveUrl + " with topic " + hiberactiveTopic);
+        };
+        xhr.send(jsonMessage);
     }
 };
 
