@@ -6,9 +6,13 @@ Zotero.HiberlinkSettings = {
         var archiveServiceCheckbox = document.getElementById("service-checkbox");
         archiveServiceCheckbox.checked = archiveServiceEnabled == 'true';
         var archiveServiceUrl = Zotero.HiberlinkSettings.getSetting("archiveServiceUrl");
-        Zotero.debug("Service url: " + archiveServiceUrl);
-        var archiveServiceUrlInput = document.getElementById("service-url");
-        archiveServiceUrlInput.value = archiveServiceUrl;
+        var archiveService = Zotero.HiberlinkSettings.getSetting("archiveService");
+        var services = document.getElementsByName("service");
+        for (var i = 0, length = services.length; i < length; i++) {
+          if (services[i].value == archiveService) {
+            services[i].checked = true;
+          }
+        }
         var hiberActiveEnabled = Zotero.HiberlinkSettings.getSetting("hiberactiveEnabled");
         var hiberActiveCheckbox = document.getElementById("hiberactive-checkbox");
         hiberActiveCheckbox.checked = hiberActiveEnabled == 'true';
@@ -22,12 +26,16 @@ Zotero.HiberlinkSettings = {
 
     saveSettings: function () {
         var serviceCheckbox = document.getElementById("service-checkbox");
-        var serviceUrl = document.getElementById("service-url");
+        var services = document.getElementsByName("service");
+        for (var i = 0, length = services.length; i < length; i++) {
+          if (services[i].checked) {
+            Zotero.HiberlinkSettings.setSetting("archiveService", services[i].value);
+          }
+        }
         var hiberActiveCheckbox = document.getElementById("hiberactive-checkbox");
         var hiberActiveUrl = document.getElementById("hiberactive-url");
         var hiberActiveTopic = document.getElementById("topic-url");
         Zotero.HiberlinkSettings.setSetting("archiveServiceEnabled", serviceCheckbox.checked);
-        Zotero.HiberlinkSettings.setSetting("archiveServiceUrl", serviceUrl.value);
         Zotero.HiberlinkSettings.setSetting("hiberactiveEnabled", hiberActiveCheckbox.checked);
         Zotero.HiberlinkSettings.setSetting("hiberactiveUrl", hiberActiveUrl.value);
         Zotero.HiberlinkSettings.setSetting("hiberactiveTopic", hiberActiveTopic.value);

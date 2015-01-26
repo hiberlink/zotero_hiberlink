@@ -17,9 +17,16 @@
             <label for="service-checkbox">Enable archive</label><input
                 type="checkbox" id="service-checkbox" name="service-checkbox">
         </div>
-        <div id="service-url-div" class="settings-div">
-            <label for="service-url">Archive service URL</label><input
-                id="service-url" name="service-url" type="url" size="30">
+        <div id="service-radio-div" class="settings-div">
+          <label for="archive-today">archive.today</label>
+          <input type="radio" id="archive-today" name="service" value="at"/>
+          <br/>
+          <label for="ia">Internet Archive</label>
+          <input type="radio" id="ia" name="service" value="ia"/>
+          <br/>
+          <label for="perma">perma.cc</label>
+          <input type="radio" id="perma" name="service" value="perma"/>
+          <br/>
         </div>
         <div id="hiberactive-checkbox-div" class="settings-div">
             <label for="hiberactive-checkbox">Enable HiberActive</label><input

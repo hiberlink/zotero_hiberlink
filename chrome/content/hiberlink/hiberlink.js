@@ -18,7 +18,7 @@ Zotero.Hiberlink = {
         if (!this.DB.tableExists('settings')) {
             this.DB.query("CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, key TEXT NOT NULL, " +
                 "value TEXT NOT NULL)");
-            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceUrl", "http://archive.today/submit/"]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveService", "at"]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["archiveServiceEnabled", "true"]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveEnabled", "false"]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveUrl", ""]);
@@ -141,8 +141,7 @@ Zotero.Hiberlink = {
         var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
             .getService(Components.interfaces.nsIPromptService);
         var xhr = new XMLHttpRequest();
-        var object = this;
-        var archiveServiceUrl = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", ["archiveServiceUrl"])[0]['value'];
+        var archiveServiceUrl = 'http://archive.today/submit/';
         Zotero.debug("Archiving to: " + archiveServiceUrl);
         xhr.open('POST', archiveServiceUrl, true);
         xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
