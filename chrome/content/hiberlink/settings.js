@@ -13,6 +13,13 @@ Zotero.HiberlinkSettings = {
             services[i].checked = true;
           }
         }
+        var urlOrder = Zotero.HiberlinkSettings.getSetting("urlOrder");
+        var urlOrderRadio = document.getElementsByName("url-order");
+        for (var j = 0, length2 = urlOrderRadio.length; j < length2; j++) {
+            if (urlOrderRadio[j].value.toString() == urlOrder) {
+                urlOrderRadio[j].checked = true;
+            }
+        }
         var hiberActiveEnabled = Zotero.HiberlinkSettings.getSetting("hiberactiveEnabled");
         var hiberActiveCheckbox = document.getElementById("hiberactive-checkbox");
         hiberActiveCheckbox.checked = hiberActiveEnabled == 'true';
@@ -32,6 +39,12 @@ Zotero.HiberlinkSettings = {
             Zotero.HiberlinkSettings.setSetting("archiveService", services[i].value);
           }
         }
+        var urlOrderRadio = document.getElementsByName("url-order");
+        for (var j = 0, length2 = urlOrderRadio.length; j < length2; j++) {
+          if (urlOrderRadio[j].checked) {
+            Zotero.HiberlinkSettings.setSetting("urlOrder", urlOrderRadio[j].value.toString());
+          }
+        }
         var hiberActiveCheckbox = document.getElementById("hiberactive-checkbox");
         var hiberActiveUrl = document.getElementById("hiberactive-url");
         var hiberActiveTopic = document.getElementById("topic-url");
@@ -39,6 +52,7 @@ Zotero.HiberlinkSettings = {
         Zotero.HiberlinkSettings.setSetting("hiberactiveEnabled", hiberActiveCheckbox.checked);
         Zotero.HiberlinkSettings.setSetting("hiberactiveUrl", hiberActiveUrl.value);
         Zotero.HiberlinkSettings.setSetting("hiberactiveTopic", hiberActiveTopic.value);
+        window.close();
     },
 
     getSetting: function (key) {

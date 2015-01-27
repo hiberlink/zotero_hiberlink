@@ -23,6 +23,7 @@ Zotero.Hiberlink = {
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveEnabled", "false"]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveUrl", ""]);
             this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["hiberactiveTopic", ""]);
+            this.DB.query("INSERT INTO settings (key, value) VALUES (?, ?)", ["urlOrder", "originalUrl"]);
         }
 
         // Register the callback in Zotero as an item observer
@@ -48,6 +49,18 @@ Zotero.Hiberlink = {
     getSettings: function () {
         // Display additional window to show Hiberlink settings
         ZoteroPane_Local.loadURI("zotero://hiberlink/content/settings.html");
+    },
+
+    getSetting: function (key) {
+        var value = null;
+        var rows = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", [key]);
+        if (rows.length > 0) {
+            var row = rows[0];
+            if (row != null) {
+                value = row['value'];
+            }
+        }
+        return value;
     },
 
     // Callback implementing the notify() method to pass to the Notifier
@@ -138,7 +151,19 @@ Zotero.Hiberlink = {
         xhr2.send();
     },
     archiveURL: function (itemId, oldVersion, title, url) {
-        var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+        var archiveService = Zotero.Hiberlink.getSetting("archiveService");
+        if (archiveService == 'at') {
+            Zotero.Hiberlink.archiveAT(itemId, oldVersion, title, url);
+        } else if (archiveService == 'ia') {
+            Zotero.Hiberlink.archiveIA(itemId, oldVersion, title, url);
+        } else if (archiveService == 'perma') {
+            Zotero.Hiberlink.archivePerma(itemId, oldVersion, title, url);
+        } else {
+            Zotero.debug("Archive service unrecognised");
+        }
+    },
+    archiveAT: function (itemId, oldVersion, title, url) {
+       var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
             .getService(Components.interfaces.nsIPromptService);
         var xhr = new XMLHttpRequest();
         var archiveServiceUrl = 'http://archive.today/submit/';
@@ -162,7 +187,37 @@ Zotero.Hiberlink = {
             ps.alert(null, "", Zotero.getString('hiberlink.fail', [url]));
             var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, title, url) VALUES (?, ?, ?)", [itemId, title, url]);
         };
-        xhr.send('url=' + url);
+        xhr.send('url=' + url); 
+    },
+    archiveIA: function (itemId, oldVersion, title, url) {
+       var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+            .getService(Components.interfaces.nsIPromptService);
+        var xhr = new XMLHttpRequest();
+        var archiveServiceUrl = 'http://web.archive.org/save/' + url;
+        Zotero.debug("Archiving to: " + archiveServiceUrl);
+        xhr.open('GET', archiveServiceUrl, true);
+        xhr.onload = function () {
+            if (xhr.response != null) {
+                Zotero.Hiberlink.archiveUrl = 'http://web.archive.org' + xhr.getResponseHeader('Content-Location');
+                var datetime = Zotero.Date.dateToSQL(new Date(xhr.getResponseHeader('X-Archive-Orig-Date')));
+                var utcDatetime = Zotero.Date.dateToSQL(new Date(xhr.getResponseHeader('X-Archive-Orig-Date')), true);
+                Zotero.debug("Querying archive url: " + Zotero.Hiberlink.archiveUrl);
+                Zotero.Hiberlink.insertID = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, version, title, url, archiveurl, timestamp) VALUES (?, ?, ?, ?, ?, ?)", [itemId, ++oldVersion, title, url, Zotero.Hiberlink.archiveUrl, datetime]);
+                Zotero.Hiberlink.item.setField('archive', Zotero.Hiberlink.archiveUrl);
+                Zotero.Hiberlink.item.setField('accessDate', utcDatetime);
+                Zotero.Hiberlink.item.save();
+            } else {
+                Zotero.debug("Archival service did not accept the URL '" + url + "'");
+            }
+        };
+        xhr.onerror = function () {
+            ps.alert(null, "", Zotero.getString('hiberlink.fail', [url]));
+            var insertId = Zotero.Hiberlink.DB.query("INSERT INTO changes (itemid, title, url) VALUES (?, ?, ?)", [itemId, title, url]);
+        };
+        xhr.send(); 
+    },
+    archivePerma: function (itemId, oldVersion, title, url) {
+       Zotero.debug("Perma.cc archiving not implemented yet");
     },
     hiberactiveURL: function (url, hiberactiveUrl, hiberactiveTopic) {
 //        var doc = new DOMParser().parseFromString('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:rs="http://www.openarchives.orgrs/terms/"></urlset>',  "application/xml")

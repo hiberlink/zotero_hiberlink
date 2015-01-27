@@ -19,6 +19,14 @@ div.settings {
     border-bottom: 5px;
 }
 
+div.settings-div {
+    margin: 5px;
+}
+
+div.settings-div label {
+    margin-right: 5px;
+}
+
 #hor-minimalist-a {
     font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
     font-size: 12px;

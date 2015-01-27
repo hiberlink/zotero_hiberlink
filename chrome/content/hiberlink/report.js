@@ -2,33 +2,40 @@ function buildContent() {
     var reportElement = document.getElementById('hiberlink-report');
     var params = parseParams(window.location.search.substring(1));
     var results = getResults(params);
-    var table = document.createElement("table");
-    table.setAttribute("id", "hor-minimalist-a");
-    var thead = document.createElement("thead");
-    var theadrow = document.createElement("tr");
-    theadrow.appendChild(createHeader("Title"));
-    theadrow.appendChild(createHeader("URL"));
-    theadrow.appendChild(createHeader("Archive URL"));
-    theadrow.appendChild(createHeader("Timestamp"));
-    thead.appendChild(theadrow);
-    table.appendChild(thead);
-    var tbody = document.createElement("tbody");
-    for (var i = 0; i < results.length; i++) {
-        var result = results[i];
-        var tr = document.createElement("tr");
-        tr.appendChild(createCell(result['title']));
-        tr.appendChild(createCell(result['url'], result['url']));
-        tr.appendChild(createCell(result['archiveurl'], result['archiveurl']));
-        tr.appendChild(createCell(result['timestamp']));
-        tbody.appendChild(tr);
+    if (results) {
+        Zotero.debug("Results: " + results);
+        var table = document.createElement("table");
+        table.setAttribute("id", "hor-minimalist-a");
+        var thead = document.createElement("thead");
+        var theadrow = document.createElement("tr");
+        theadrow.appendChild(createHeader("Title"));
+        theadrow.appendChild(createHeader("URL"));
+        theadrow.appendChild(createHeader("Archive URL"));
+        theadrow.appendChild(createHeader("Timestamp"));
+        thead.appendChild(theadrow);
+        table.appendChild(thead);
+        var tbody = document.createElement("tbody");
+        for (var i = 0; i < results.length; i++) {
+            var result = results[i];
+            var tr = document.createElement("tr");
+            tr.appendChild(createCell(result['title']));
+            tr.appendChild(createCell(result['url'], result['url']));
+            tr.appendChild(createCell(result['archiveurl'], result['archiveurl']));
+            tr.appendChild(createCell(result['timestamp']));
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        reportElement.appendChild(table);
+        var jsTextNode = document.createElement("script");
+        jsTextNode.setAttribute("id", "results");
+        jsTextNode.textContent = params;
+        reportElement.appendChild(jsTextNode);
+        Zotero.debug("Table: " + reportElement.innerHTML);
+    } else {
+        var message = document.createElement("p");
+        message.textContent = "Unable to find any results";
+        reportElement.appendChild(message);
     }
-    table.appendChild(tbody);
-    reportElement.appendChild(table);
-    var jsTextNode = document.createElement("script");
-    jsTextNode.setAttribute("id", "results");
-    jsTextNode.textContent = params;
-    reportElement.appendChild(jsTextNode);
-    Zotero.debug("Table: " + reportElement.innerHTML);
 }
 
 function createHeader(text) {
@@ -74,10 +81,16 @@ function saveReport() {
     }
     var results = getResults(items);
     var data = "<html><body>";
+    var urlOrder = getSetting("urlOrder");
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        data += "<a href='" + result['url'] + "' data-versionurl='" + result['archiveurl'] + "' data-versiondate='"
+        if (urlOrder == 'originalUrl') {
+            data += "<a href='" + result['url'] + "' data-versionurl='" + result['archiveurl'] + "' data-versiondate='"
             + result['timestamp'] + "'>" + result['url'] + "</a>";
+        } else {
+            data += "<a href='" + result['archiveurl'] + "' data-originalurl='" + result['url'] + "' data-versiondate='"
+            + result['timestamp'] + "'>" + result['archiveurl'] + "</a>";
+        }        
     }
     data += "</body></html>";
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -113,6 +126,18 @@ function getResults(params) {
     return Zotero.Hiberlink.DB.query("SELECT url, title, archiveurl, timestamp FROM changes"
         + query.substring(0, query.length - 3));
 }
+
+function getSetting(key) {
+        var value = null;
+        var rows = Zotero.Hiberlink.DB.query("SELECT value from settings WHERE key=?", [key]);
+        if (rows.length > 0) {
+            var row = rows[0];
+            if (row != null) {
+                value = row['value'];
+            }
+        }
+        return value;
+    }
 
 // Function to check that value is an integer. We're constructing our own SQL query from the
 // params passed to the page so we need to make sure that we're not allowing SQL injections.
